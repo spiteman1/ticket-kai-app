@@ -1,4 +1,4 @@
-package com.example.ticket_kai_backend.model;
+package com.example.ticket_kai_backend;
 
 
 import com.example.ticket_kai_backend.model.Event;
