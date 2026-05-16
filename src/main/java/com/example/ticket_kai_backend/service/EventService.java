@@ -5,6 +5,7 @@ import com.example.ticket_kai_backend.model.Ticket;
 import com.example.ticket_kai_backend.repository.EventRepository;
 import com.example.ticket_kai_backend.repository.TicketRepository;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -27,7 +28,7 @@ public class EventService {
         return eventRepository.findAll();
     }
 
-
+@Transactional
 public Ticket confirmPurchase(String reservationId, Long eventId) {
     String redisKey = "event:" + eventId + ":hold:" + reservationId;
     
@@ -39,7 +40,7 @@ public Ticket confirmPurchase(String reservationId, Long eventId) {
     }
 
    
-    Event event = eventRepository.findById(eventId)
+    Event event = eventRepository.findByIdWithLock(eventId)
             .orElseThrow(() -> new RuntimeException("Event vanished?!"));
 
     if (event.getAvailableTickets() <= 0) {
@@ -53,7 +54,7 @@ public Ticket confirmPurchase(String reservationId, Long eventId) {
     Ticket finalTicket = new Ticket(event, customerName);
     ticketRepository.save(finalTicket);
 
-
+ 
     redisTemplate.delete(redisKey);
 
     return finalTicket;
