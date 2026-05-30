@@ -4,6 +4,7 @@ import com.example.ticket_kai_backend.model.Event;
 import com.example.ticket_kai_backend.service.EventService;
 import com.example.ticket_kai_backend.service.ReservationService;
 
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,12 +17,14 @@ import java.util.List;
 @RequestMapping("/api/events")
 public class EventController {
 
+    private final RabbitTemplate rabbitTemplate;
     private final ReservationService reservationService;
     private final EventService eventService;
 
-    public EventController(EventService eventService,ReservationService reservationService) {
+    public EventController(EventService eventService,ReservationService reservationService,RabbitTemplate rabbitTemplate) {
         this.eventService = eventService;
         this.reservationService = reservationService;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     @GetMapping
@@ -37,12 +40,13 @@ public String reserve(@PathVariable Long id, @RequestParam String customerName) 
 
 @PostMapping("/{id}/confirm")
 public String confirm(@PathVariable Long id, @RequestParam String reservationId) {
-    try {
-        eventService.confirmPurchase(reservationId, id);
-        return "Purchase complete! Enjoy the show.";
-    } catch (Exception e) {
-        return "Error: " + e.getMessage();
-    }
+// Pack the data into a simple object or DTO
+    String message = reservationId + ":" + id;
+    
+    // Fire and forget: send to the queue
+    rabbitTemplate.convertAndSend("ticketQueue", message);
+    
+    return "Request received! We are processing your ticket. Check back later.";
 }
 
 
